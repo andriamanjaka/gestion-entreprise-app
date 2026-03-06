@@ -2,15 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import AppLayout from "../components/AppLayout";
 import api from "../lib/api";
 
-const getProjectStatus = (value = "") => {
-  const normalized = value.toLowerCase();
+const formatAr = (value) => `${new Intl.NumberFormat("fr-FR").format(value || 0)} Ar`;
+
+const getStatusClass = (statut = "") => {
+  const normalized = statut.toLowerCase();
   if (normalized.includes("term")) return "termine";
   if (normalized.includes("cours")) return "en-cours";
-  if (normalized.includes("suspend")) return "suspendu";
   return "en-attente";
 };
-
-const formatAr = (value) => `${new Intl.NumberFormat("fr-FR").format(value || 0)} Ar`;
 
 const Dashboard = () => {
   const [projects, setProjects] = useState([]);
@@ -22,12 +21,12 @@ const Dashboard = () => {
     try {
       setLoading(true);
       setError("");
-      const [projectsRes, employesRes] = await Promise.all([
+      const [projectRes, employeRes] = await Promise.all([
         api.get("/projects"),
         api.get("/employes"),
       ]);
-      setProjects(projectsRes.data || []);
-      setEmployes(employesRes.data || []);
+      setProjects(projectRes.data || []);
+      setEmployes(employeRes.data || []);
     } catch (requestError) {
       console.error(requestError);
       setError("Impossible de charger les donnees du dashboard.");
@@ -41,15 +40,18 @@ const Dashboard = () => {
   }, [loadData]);
 
   const stats = useMemo(() => {
-    const totalBudget = projects.reduce((sum, p) => sum + Number(p.budget || 0), 0);
-    const totalSalaire = employes.reduce((sum, e) => sum + Number(e.salaire || 0), 0);
-    const projetsActifs = projects.filter((p) => getProjectStatus(p.statut) === "en-cours").length;
+    const totalBudget = projects.reduce((sum, item) => sum + Number(item.budget || 0), 0);
+    const salaryTotal = employes.reduce((sum, item) => sum + Number(item.salaire || 0), 0);
+    const activeProjects = projects.filter((item) => getStatusClass(item.statut) === "en-cours").length;
+    const completedProjects = projects.filter((item) => getStatusClass(item.statut) === "termine").length;
 
     return [
-      { title: "Projets actifs", value: String(projetsActifs) },
+      { title: "Projets actifs", value: String(activeProjects) },
+      { title: "Projets termines", value: String(completedProjects) },
       { title: "Employes", value: String(employes.length) },
-      { title: "Budget projets", value: formatAr(totalBudget) },
-      { title: "Masse salariale", value: formatAr(totalSalaire) },
+      { title: "Budget total", value: formatAr(totalBudget) },
+      { title: "Masse salariale", value: formatAr(salaryTotal) },
+      { title: "Marge brute estimee", value: formatAr(totalBudget - salaryTotal) },
     ];
   }, [projects, employes]);
 
@@ -60,7 +62,7 @@ const Dashboard = () => {
 
   return (
     <AppLayout title="Dashboard">
-      <section className="stats-grid">
+      <section className="stats-grid dashboard-stats-grid">
         {stats.map((item) => (
           <article className="stat-card" key={item.title}>
             <h3>{item.title}</h3>
@@ -72,11 +74,13 @@ const Dashboard = () => {
       <section className="panel">
         <div className="panel-head panel-head-spread">
           <h2>Projets recents</h2>
-          <button className="btn-secondary" onClick={loadData} type="button">
+          <button type="button" className="btn-secondary" onClick={loadData}>
             Actualiser
           </button>
         </div>
+
         {error && <p className="alert alert-danger">{error}</p>}
+
         <div className="table-wrap">
           {loading ? (
             <p>Chargement...</p>
@@ -93,26 +97,23 @@ const Dashboard = () => {
               </thead>
               <tbody>
                 {recentProjects.length > 0 ? (
-                  recentProjects.map((row) => {
-                    const status = getProjectStatus(row.statut);
-                    return (
-                      <tr key={row.id}>
-                        <td>{row.nom}</td>
-                        <td>{formatAr(Number(row.budget || 0))}</td>
-                        <td>{row.date_debut?.slice(0, 10) || "-"}</td>
-                        <td>{row.date_fin?.slice(0, 10) || "-"}</td>
-                        <td>
-                          <span className={`status-badge ${status}`}>
-                            {row.statut || "En attente"}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })
+                  recentProjects.map((project) => (
+                    <tr key={project.id}>
+                      <td>{project.nom}</td>
+                      <td>{formatAr(Number(project.budget || 0))}</td>
+                      <td>{project.date_debut?.slice(0, 10) || "-"}</td>
+                      <td>{project.date_fin?.slice(0, 10) || "-"}</td>
+                      <td>
+                        <span className={`status-badge ${getStatusClass(project.statut)}`}>
+                          {project.statut || "En attente"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
                 ) : (
                   <tr>
                     <td colSpan="5" className="empty-row">
-                      Aucun projet recent.
+                      Aucun projet disponible.
                     </td>
                   </tr>
                 )}

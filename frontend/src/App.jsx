@@ -11,7 +11,6 @@ import Employer from "./pages/Employer";
 import Projects from "./pages/Projects";
 import Finance from "./pages/Finance";
 import Settings from "./pages/Settings";
-import "./index.css";
 
 const router = createBrowserRouter([
   {
