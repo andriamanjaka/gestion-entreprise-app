@@ -6,7 +6,7 @@ import { createUser, findUserByName } from "../models/userModel.js";
 export const register = (req, res) => {
   const { nom, email, password } = req.body;
 
-  // Vérification champs
+  // Vérification champs dans formulaire
   if (!nom || !email || !password) {
     return res.status(400).json({ message: "Champs requis manquants" });
   }
