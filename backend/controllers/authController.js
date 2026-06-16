@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { createUser, findUserByName } from "../models/userModel.js";
 
-// ================= REGISTER =================
+//Registre
 export const register = (req, res) => {
   const { nom, email, password } = req.body;
 
